@@ -179,4 +179,102 @@ export default function OptimizationPage() {
                 <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
                   <h4 className="text-white font-semibold mb-3">📊 Details:</h4>
                   <div className="space-y-2 text-gray-300">
-                    {result.details.campaignsOptimized !== undefined &&
+                    <div className="flex justify-between">
+                      <span>Kampagnen optimiert:</span>
+                      <span className="font-bold text-white">
+                        {result.details.campaignsOptimized || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Keywords optimiert:</span>
+                      <span className="font-bold text-white">
+                        {result.details.keywordsOptimized || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Gebote angepasst:</span>
+                      <span className="font-bold text-white">
+                        {result.details.bidsAdjusted || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Budgets angepasst:</span>
+                      <span className="font-bold text-white">
+                        {result.details.budgetAdjusted || 0}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {result.error && (
+                <div className="mt-4 bg-red-900/30 rounded-lg p-4 border border-red-700">
+                  <h4 className="text-red-400 font-semibold mb-2">Fehlerdetails:</h4>
+                  <p className="text-red-300 font-mono text-sm">{result.error}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Was wird optimiert? */}
+      <div className="mt-8 rounded-xl bg-gray-800 border border-gray-700 p-8 shadow-xl">
+        <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+          <span>🎯</span>
+          Was wird optimiert?
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="rounded-full bg-blue-500/20 p-2 mt-1">
+                <CheckCircle className="h-5 w-5 text-blue-400" />
+              </div>
+              <div>
+                <h3 className="text-white font-semibold mb-1">Gebots-Optimierung</h3>
+                <p className="text-gray-400 text-sm">
+                  Automatische Anpassung der Keyword-Gebote basierend auf Performance-Daten
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="rounded-full bg-green-500/20 p-2 mt-1">
+                <CheckCircle className="h-5 w-5 text-green-400" />
+              </div>
+              <div>
+                <h3 className="text-white font-semibold mb-1">Keyword-Analyse</h3>
+                <p className="text-gray-400 text-sm">
+                  Identifikation und Pausierung schlecht performender Keywords
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="rounded-full bg-purple-500/20 p-2 mt-1">
+                <CheckCircle className="h-5 w-5 text-purple-400" />
+              </div>
+              <div>
+                <h3 className="text-white font-semibold mb-1">Budget-Optimierung</h3>
+                <p className="text-gray-400 text-sm">
+                  Dynamische Budgetverteilung auf profitable Kampagnen
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="rounded-full bg-yellow-500/20 p-2 mt-1">
+                <CheckCircle className="h-5 w-5 text-yellow-400" />
+              </div>
+              <div>
+                <h3 className="text-white font-semibold mb-1">Performance-Tracking</h3>
+                <p className="text-gray-400 text-sm">
+                  Kontinuierliche Überwachung von ACoS, CTR und Conversion Rate
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
