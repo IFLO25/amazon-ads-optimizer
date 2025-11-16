@@ -1,29 +1,37 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Target, TrendingUp, RefreshCw, Play, Pause } from 'lucide-react';
-import { campaignsApi } from '@/lib/api';
+import { Sidebar } from '@/components/Sidebar';
+
+interface Campaign {
+  campaignId: string;
+  name: string;
+  status: string;
+  budget: number;
+  spent: number;
+  impressions: number;
+  clicks: number;
+  sales: number;
+}
 
 export default function CampaignsPage() {
-  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [error, setError] = useState('');
 
   useEffect(() => {
-    loadCampaigns();
+    fetchCampaigns();
   }, []);
 
-  const loadCampaigns = async () => {
+  const fetchCampaigns = async () => {
     try {
       setLoading(true);
-      setError('');
-      const response = await campaignsApi.getAll();
-      setCampaigns(Array.isArray(response.data) ? response.data : []);
-    } catch (err: any) {
-      console.error('Fehler beim Laden der Kampagnen:', err);
-      setError(err.response?.data?.message || 'Fehler beim Laden der Kampagnen');
-      setCampaigns([]);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const res = await fetch(`${apiUrl}/api/campaigns`);
+      const data = await res.json();
+      setCampaigns(data);
+    } catch (error) {
+      console.error('Fehler beim Laden der Kampagnen:', error);
     } finally {
       setLoading(false);
     }
@@ -32,127 +40,156 @@ export default function CampaignsPage() {
   const syncCampaigns = async () => {
     try {
       setSyncing(true);
-      setError('');
-      await campaignsApi.sync();
-      await loadCampaigns();
-    } catch (err: any) {
-      console.error('Fehler beim Synchronisieren:', err);
-      setError(err.response?.data?.message || 'Fehler beim Synchronisieren');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const res = await fetch(`${apiUrl}/api/campaigns/sync`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      alert(`✅ ${data.count} Kampagnen synchronisiert!`);
+      await fetchCampaigns();
+    } catch (error) {
+      console.error('Fehler beim Synchronisieren:', error);
+      alert('❌ Fehler beim Synchronisieren!');
     } finally {
       setSyncing(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="h-16 w-16 animate-spin rounded-full border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-white text-xl">Kampagnen werden geladen...</p>
-        </div>
-      </div>
-    );
-  }
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'enabled':
+        return 'text-green-400';
+      case 'paused':
+        return 'text-yellow-400';
+      case 'archived':
+        return 'text-gray-400';
+      default:
+        return 'text-gray-400';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'enabled':
+        return '✅';
+      case 'paused':
+        return '⏸️';
+      case 'archived':
+        return '📦';
+      default:
+        return '❓';
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-5xl font-bold text-white flex items-center gap-3 mb-2">
-            <span>🎯</span>
-            Kampagnen
-          </h1>
-          <p className="text-gray-400 text-xl">Übersicht aller Amazon Advertising Kampagnen</p>
-        </div>
-        <button
-          onClick={syncCampaigns}
-          disabled={syncing}
-          className={`px-6 py-3 rounded-xl font-bold transition flex items-center gap-2 ${
-            syncing
-              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-              : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-xl'
-          }`}
-        >
-          <RefreshCw className={`h-5 w-5 ${syncing ? 'animate-spin' : ''}`} />
-          {syncing ? 'Synchronisiere...' : 'Synchronisieren'}
-        </button>
-      </div>
+    <div className="flex min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      <Sidebar />
+      
+      <main className="flex-1 p-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-4xl font-bold text-white mb-2">
+                📊 Kampagnen
+              </h1>
+              <p className="text-gray-400">
+                Übersicht aller Amazon Advertising Kampagnen
+              </p>
+            </div>
+            <button
+              onClick={syncCampaigns}
+              disabled={syncing}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+            >
+              {syncing ? '🔄 Synchronisiere...' : '🔄 Synchronisieren'}
+            </button>
+          </div>
 
-      {error && (
-        <div className="mb-6 bg-red-900/20 border border-red-700 rounded-xl p-4">
-          <p className="text-red-400">⚠️ {error}</p>
-        </div>
-      )}
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+              <div className="text-gray-400 text-sm mb-2">Gesamt</div>
+              <div className="text-3xl font-bold text-white">{campaigns.length}</div>
+            </div>
+            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+              <div className="text-gray-400 text-sm mb-2">Aktiv</div>
+              <div className="text-3xl font-bold text-green-400">
+                {campaigns.filter(c => c.status === 'enabled').length}
+              </div>
+            </div>
+            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+              <div className="text-gray-400 text-sm mb-2">Pausiert</div>
+              <div className="text-3xl font-bold text-yellow-400">
+                {campaigns.filter(c => c.status === 'paused').length}
+              </div>
+            </div>
+            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+              <div className="text-gray-400 text-sm mb-2">Budget gesamt</div>
+              <div className="text-3xl font-bold text-purple-400">
+                {campaigns.reduce((sum, c) => sum + (c.budget || 0), 0).toFixed(2)}€
+              </div>
+            </div>
+          </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="rounded-xl bg-gradient-to-br from-blue-900/50 to-blue-700/50 border border-blue-600 p-6">
-          <h3 className="text-blue-300 text-sm font-medium mb-1">GESAMT</h3>
-          <p className="text-4xl font-bold text-white">{campaigns.length}</p>
+          {/* Campaigns Table */}
+          {loading ? (
+            <div className="text-center py-20">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+              <p className="text-gray-400 mt-4">Lade Kampagnen...</p>
+            </div>
+          ) : campaigns.length === 0 ? (
+            <div className="bg-gray-800 rounded-xl p-12 text-center border border-gray-700">
+              <div className="text-6xl mb-4">📭</div>
+              <h3 className="text-2xl font-bold text-white mb-2">Keine Kampagnen gefunden</h3>
+              <p className="text-gray-400 mb-6">Synchronisieren Sie Ihre Kampagnen von Amazon</p>
+              <button
+                onClick={syncCampaigns}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+              >
+                🔄 Jetzt synchronisieren
+              </button>
+            </div>
+          ) : (
+            <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-900">
+                    <tr>
+                      <th className="text-left p-4 text-gray-400 font-semibold">Status</th>
+                      <th className="text-left p-4 text-gray-400 font-semibold">Name</th>
+                      <th className="text-right p-4 text-gray-400 font-semibold">Budget</th>
+                      <th className="text-right p-4 text-gray-400 font-semibold">Ausgaben</th>
+                      <th className="text-right p-4 text-gray-400 font-semibold">Impressionen</th>
+                      <th className="text-right p-4 text-gray-400 font-semibold">Klicks</th>
+                      <th className="text-right p-4 text-gray-400 font-semibold">Umsatz</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {campaigns.map((campaign) => (
+                      <tr key={campaign.campaignId} className="border-t border-gray-700 hover:bg-gray-750">
+                        <td className="p-4">
+                          <span className={`${getStatusColor(campaign.status)} font-semibold`}>
+                            {getStatusIcon(campaign.status)} {campaign.status}
+                          </span>
+                        </td>
+                        <td className="p-4 text-white font-medium">{campaign.name}</td>
+                        <td className="p-4 text-right text-white">{campaign.budget?.toFixed(2) || '0.00'}€</td>
+                        <td className="p-4 text-right text-white">{campaign.spent?.toFixed(2) || '0.00'}€</td>
+                        <td className="p-4 text-right text-gray-300">{campaign.impressions?.toLocaleString() || 0}</td>
+                        <td className="p-4 text-right text-gray-300">{campaign.clicks?.toLocaleString() || 0}</td>
+                        <td className="p-4 text-right text-green-400 font-semibold">
+                          {campaign.sales?.toFixed(2) || '0.00'}€
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
-        <div className="rounded-xl bg-gradient-to-br from-green-900/50 to-green-700/50 border border-green-600 p-6">
-          <h3 className="text-green-300 text-sm font-medium mb-1">AKTIV</h3>
-          <p className="text-4xl font-bold text-white">
-            {campaigns.filter(c => c.state === 'ENABLED' || c.state === 'enabled').length}
-          </p>
-        </div>
-        <div className="rounded-xl bg-gradient-to-br from-orange-900/50 to-orange-700/50 border border-orange-600 p-6">
-          <h3 className="text-orange-300 text-sm font-medium mb-1">PAUSIERT</h3>
-          <p className="text-4xl font-bold text-white">
-            {campaigns.filter(c => c.state === 'PAUSED' || c.state === 'paused').length}
-          </p>
-        </div>
-      </div>
-
-      <div className="rounded-xl bg-gray-800 border border-gray-700 shadow-2xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-900/50">
-              <tr>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-300">Name</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-300">Status</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-300">Budget</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-300">Typ</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-300">Targeting</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-700">
-              {campaigns.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
-                    Keine Kampagnen gefunden
-                  </td>
-                </tr>
-              ) : (
-                campaigns.map((campaign: any) => (
-                  <tr key={campaign.campaignId} className="hover:bg-gray-700/50 transition">
-                    <td className="px-6 py-4 text-white font-medium">{campaign.name}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold ${
-                          campaign.state === 'ENABLED' || campaign.state === 'enabled'
-                            ? 'bg-green-900/50 text-green-400 border border-green-700'
-                            : 'bg-orange-900/50 text-orange-400 border border-orange-700'
-                        }`}
-                      >
-                        {campaign.state === 'ENABLED' || campaign.state === 'enabled' ? (
-                          <><Play className="h-3 w-3" /> Aktiv</>
-                        ) : (
-                          <><Pause className="h-3 w-3" /> Pausiert</>
-                        )}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-white">
-                      €{parseFloat(campaign.budget?.budget || campaign.dailyBudget || 0).toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4 text-gray-300">{campaign.targetingType || 'AUTO'}</td>
-                    <td className="px-6 py-4 text-gray-300">{campaign.biddingStrategy || 'AUTO'}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      </main>
     </div>
   );
 }
