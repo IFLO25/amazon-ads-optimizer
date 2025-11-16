@@ -1,158 +1,220 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Target, TrendingUp, RefreshCw, Play, Pause } from 'lucide-react';
-import { campaignsApi } from '@/lib/api';
+import { Sidebar } from '@/components/Sidebar';
 
-export default function CampaignsPage() {
-  const [campaigns, setCampaigns] = useState<any[]>([]);
+interface Keyword {
+  keywordId: string;
+  keywordText: string;
+  campaignName: string;
+  status: string;
+  bid: number;
+  impressions: number;
+  clicks: number;
+  matchType: string;
+}
+
+export default function KeywordsPage() {
+  const [keywords, setKeywords] = useState<Keyword[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [error, setError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    loadCampaigns();
+    fetchKeywords();
   }, []);
 
-  const loadCampaigns = async () => {
+  const fetchKeywords = async () => {
     try {
       setLoading(true);
-      setError('');
-      const response = await campaignsApi.getAll();
-      setCampaigns(Array.isArray(response.data) ? response.data : []);
-    } catch (err: any) {
-      console.error('Fehler beim Laden der Kampagnen:', err);
-      setError(err.response?.data?.message || 'Fehler beim Laden der Kampagnen');
-      setCampaigns([]);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const res = await fetch(`${apiUrl}/api/keywords`);
+      const data = await res.json();
+      setKeywords(data);
+    } catch (error) {
+      console.error('Fehler beim Laden der Keywords:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const syncCampaigns = async () => {
+  const syncKeywords = async () => {
     try {
       setSyncing(true);
-      setError('');
-      await campaignsApi.sync();
-      await loadCampaigns();
-    } catch (err: any) {
-      console.error('Fehler beim Synchronisieren:', err);
-      setError(err.response?.data?.message || 'Fehler beim Synchronisieren');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const res = await fetch(`${apiUrl}/api/keywords/sync`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      alert(`✅ ${data.count} Keywords synchronisiert!`);
+      await fetchKeywords();
+    } catch (error) {
+      console.error('Fehler beim Synchronisieren:', error);
+      alert('❌ Fehler beim Synchronisieren!');
     } finally {
       setSyncing(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="h-16 w-16 animate-spin rounded-full border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-white text-xl">Kampagnen werden geladen...</p>
-        </div>
-      </div>
-    );
-  }
+  const filteredKeywords = keywords.filter(keyword =>
+    keyword.keywordText.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    keyword.campaignName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'enabled':
+        return 'text-green-400';
+      case 'paused':
+        return 'text-yellow-400';
+      case 'archived':
+        return 'text-gray-400';
+      default:
+        return 'text-gray-400';
+    }
+  };
+
+  const getMatchTypeColor = (matchType: string) => {
+    switch (matchType.toLowerCase()) {
+      case 'exact':
+        return 'bg-purple-900 text-purple-300';
+      case 'phrase':
+        return 'bg-blue-900 text-blue-300';
+      case 'broad':
+        return 'bg-green-900 text-green-300';
+      default:
+        return 'bg-gray-900 text-gray-300';
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-5xl font-bold text-white flex items-center gap-3 mb-2">
-            <span>🎯</span>
-            Kampagnen
-          </h1>
-          <p className="text-gray-400 text-xl">Übersicht aller Amazon Advertising Kampagnen</p>
-        </div>
-        <button
-          onClick={syncCampaigns}
-          disabled={syncing}
-          className={`px-6 py-3 rounded-xl font-bold transition flex items-center gap-2 ${
-            syncing
-              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-              : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-xl'
-          }`}
-        >
-          <RefreshCw className={`h-5 w-5 ${syncing ? 'animate-spin' : ''}`} />
-          {syncing ? 'Synchronisiere...' : 'Synchronisieren'}
-        </button>
-      </div>
+    <div className="flex min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      <Sidebar />
+      
+      <main className="flex-1 p-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-4xl font-bold text-white mb-2">
+                🔑 Keywords
+              </h1>
+              <p className="text-gray-400">
+                Alle Keywords Ihrer Amazon Kampagnen
+              </p>
+            </div>
+            <button
+              onClick={syncKeywords}
+              disabled={syncing}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+            >
+              {syncing ? '🔄 Synchronisiere...' : '🔄 Synchronisieren'}
+            </button>
+          </div>
 
-      {error && (
-        <div className="mb-6 bg-red-900/20 border border-red-700 rounded-xl p-4">
-          <p className="text-red-400">⚠️ {error}</p>
-        </div>
-      )}
+          {/* Search Bar */}
+          <div className="mb-6">
+            <input
+              type="text"
+              placeholder="🔍 Keywords oder Kampagnen durchsuchen..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-gray-800 text-white px-6 py-4 rounded-lg border border-gray-700 focus:border-blue-500 focus:outline-none"
+            />
+          </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="rounded-xl bg-gradient-to-br from-blue-900/50 to-blue-700/50 border border-blue-600 p-6">
-          <h3 className="text-blue-300 text-sm font-medium mb-1">GESAMT</h3>
-          <p className="text-4xl font-bold text-white">{campaigns.length}</p>
-        </div>
-        <div className="rounded-xl bg-gradient-to-br from-green-900/50 to-green-700/50 border border-green-600 p-6">
-          <h3 className="text-green-300 text-sm font-medium mb-1">AKTIV</h3>
-          <p className="text-4xl font-bold text-white">
-            {campaigns.filter(c => c.state === 'ENABLED' || c.state === 'enabled').length}
-          </p>
-        </div>
-        <div className="rounded-xl bg-gradient-to-br from-orange-900/50 to-orange-700/50 border border-orange-600 p-6">
-          <h3 className="text-orange-300 text-sm font-medium mb-1">PAUSIERT</h3>
-          <p className="text-4xl font-bold text-white">
-            {campaigns.filter(c => c.state === 'PAUSED' || c.state === 'paused').length}
-          </p>
-        </div>
-      </div>
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+              <div className="text-gray-400 text-sm mb-2">Gesamt</div>
+              <div className="text-3xl font-bold text-white">{keywords.length}</div>
+            </div>
+            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+              <div className="text-gray-400 text-sm mb-2">Aktiv</div>
+              <div className="text-3xl font-bold text-green-400">
+                {keywords.filter(k => k.status === 'enabled').length}
+              </div>
+            </div>
+            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+              <div className="text-gray-400 text-sm mb-2">Gefunden</div>
+              <div className="text-3xl font-bold text-blue-400">
+                {filteredKeywords.length}
+              </div>
+            </div>
+            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+              <div className="text-gray-400 text-sm mb-2">Ø Gebot</div>
+              <div className="text-3xl font-bold text-purple-400">
+                {keywords.length > 0
+                  ? (keywords.reduce((sum, k) => sum + (k.bid || 0), 0) / keywords.length).toFixed(2)
+                  : '0.00'}€
+              </div>
+            </div>
+          </div>
 
-      <div className="rounded-xl bg-gray-800 border border-gray-700 shadow-2xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-900/50">
-              <tr>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-300">Name</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-300">Status</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-300">Budget</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-300">Typ</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-300">Targeting</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-700">
-              {campaigns.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
-                    Keine Kampagnen gefunden
-                  </td>
-                </tr>
-              ) : (
-                campaigns.map((campaign: any) => (
-                  <tr key={campaign.campaignId} className="hover:bg-gray-700/50 transition">
-                    <td className="px-6 py-4 text-white font-medium">{campaign.name}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold ${
-                          campaign.state === 'ENABLED' || campaign.state === 'enabled'
-                            ? 'bg-green-900/50 text-green-400 border border-green-700'
-                            : 'bg-orange-900/50 text-orange-400 border border-orange-700'
-                        }`}
-                      >
-                        {campaign.state === 'ENABLED' || campaign.state === 'enabled' ? (
-                          <><Play className="h-3 w-3" /> Aktiv</>
-                        ) : (
-                          <><Pause className="h-3 w-3" /> Pausiert</>
-                        )}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-white">
-                      €{parseFloat(campaign.budget?.budget || campaign.dailyBudget || 0).toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4 text-gray-300">{campaign.targetingType || 'AUTO'}</td>
-                    <td className="px-6 py-4 text-gray-300">{campaign.biddingStrategy || 'AUTO'}</td>
-                  </tr>
-                ))
+          {/* Keywords Table */}
+          {loading ? (
+            <div className="text-center py-20">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+              <p className="text-gray-400 mt-4">Lade Keywords...</p>
+            </div>
+          ) : filteredKeywords.length === 0 ? (
+            <div className="bg-gray-800 rounded-xl p-12 text-center border border-gray-700">
+              <div className="text-6xl mb-4">🔍</div>
+              <h3 className="text-2xl font-bold text-white mb-2">Keine Keywords gefunden</h3>
+              <p className="text-gray-400 mb-6">
+                {searchTerm ? 'Passen Sie Ihre Suche an' : 'Synchronisieren Sie Ihre Keywords von Amazon'}
+              </p>
+              {!searchTerm && (
+                <button
+                  onClick={syncKeywords}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+                >
+                  🔄 Jetzt synchronisieren
+                </button>
               )}
-            </tbody>
-          </table>
+            </div>
+          ) : (
+            <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-900">
+                    <tr>
+                      <th className="text-left p-4 text-gray-400 font-semibold">Keyword</th>
+                      <th className="text-left p-4 text-gray-400 font-semibold">Kampagne</th>
+                      <th className="text-left p-4 text-gray-400 font-semibold">Match Type</th>
+                      <th className="text-left p-4 text-gray-400 font-semibold">Status</th>
+                      <th className="text-right p-4 text-gray-400 font-semibold">Gebot</th>
+                      <th className="text-right p-4 text-gray-400 font-semibold">Impressionen</th>
+                      <th className="text-right p-4 text-gray-400 font-semibold">Klicks</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredKeywords.map((keyword) => (
+                      <tr key={keyword.keywordId} className="border-t border-gray-700 hover:bg-gray-750">
+                        <td className="p-4 text-white font-medium">{keyword.keywordText}</td>
+                        <td className="p-4 text-gray-300">{keyword.campaignName}</td>
+                        <td className="p-4">
+                          <span className={`${getMatchTypeColor(keyword.matchType)} px-3 py-1 rounded-full text-xs font-semibold`}>
+                            {keyword.matchType}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <span className={`${getStatusColor(keyword.status)} font-semibold`}>
+                            {keyword.status}
+                          </span>
+                        </td>
+                        <td className="p-4 text-right text-white">{keyword.bid?.toFixed(2) || '0.00'}€</td>
+                        <td className="p-4 text-right text-gray-300">{keyword.impressions?.toLocaleString() || 0}</td>
+                        <td className="p-4 text-right text-gray-300">{keyword.clicks?.toLocaleString() || 0}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }
