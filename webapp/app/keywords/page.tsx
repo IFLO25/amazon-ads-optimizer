@@ -1,21 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { RefreshCw, Search, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
 import { keywordsApi } from '@/lib/api';
-import { TrendingUp, Search } from 'lucide-react';
-
-interface Keyword {
-  keywordId: string;
-  keywordText: string;
-  matchType: string;
-  state: string;
-  bid: number;
-}
 
 export default function KeywordsPage() {
-  const [keywords, setKeywords] = useState<Keyword[]>([]);
+  const [keywords, setKeywords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [optimizing, setOptimizing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
@@ -24,187 +15,195 @@ export default function KeywordsPage() {
 
   const loadKeywords = async () => {
     try {
+      setLoading(true);
       const response = await keywordsApi.getAll();
-      const data = response.data.keywords || response.data || [];
-      setKeywords(data);
+      setKeywords(response.data || []);
     } catch (error) {
       console.error('Fehler beim Laden der Keywords:', error);
+      setKeywords([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const optimizeKeywords = async () => {
-    setOptimizing(true);
-    try {
-      await keywordsApi.optimize();
-      await loadKeywords();
-    } catch (error) {
-      console.error('Fehler bei der Optimierung:', error);
-    } finally {
-      setOptimizing(false);
+  const filteredKeywords = keywords.filter((keyword) =>
+    keyword.keywordText?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const getStateColor = (state: string) => {
+    switch (state) {
+      case 'ENABLED':
+        return 'bg-green-500/20 text-green-400 border-green-500';
+      case 'PAUSED':
+        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500';
+      case 'ARCHIVED':
+        return 'bg-gray-500/20 text-gray-400 border-gray-500';
+      default:
+        return 'bg-blue-500/20 text-blue-400 border-blue-500';
     }
   };
 
-  const filteredKeywords = keywords.filter(kw =>
-    kw.keywordText.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const getMatchTypeColor = (matchType: string) => {
+    switch (matchType) {
+      case 'EXACT':
+        return 'bg-purple-500/20 text-purple-400 border-purple-500';
+      case 'PHRASE':
+        return 'bg-blue-500/20 text-blue-400 border-blue-500';
+      case 'BROAD':
+        return 'bg-indigo-500/20 text-indigo-400 border-indigo-500';
+      default:
+        return 'bg-gray-500/20 text-gray-400 border-gray-500';
+    }
+  };
+
+  const stats = {
+    total: keywords.length,
+    enabled: keywords.filter(k => k.state === 'ENABLED').length,
+    paused: keywords.filter(k => k.state === 'PAUSED').length,
+  };
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-900">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="h-16 w-16 animate-spin rounded-full border-4 border-blue-500 border-t-transparent mx-auto"></div>
-          <p className="mt-4 text-xl text-gray-300">Lade Keywords...</p>
+          <div className="h-16 w-16 animate-spin rounded-full border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-300 text-lg">Lade Keywords...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-8">
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold text-white flex items-center gap-3">
-            <span>🔑</span>
-            Keywords
-          </h1>
-          <p className="mt-2 text-gray-400 text-lg">
-            {keywords.length} Keywords verwaltet
-          </p>
-        </div>
-        <button
-          onClick={optimizeKeywords}
-          disabled={optimizing}
-          className="flex items-center gap-2 rounded-lg bg-green-600 px-6 py-3 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition transform hover:scale-105 shadow-lg"
-        >
-          <TrendingUp className={`h-5 w-5 ${optimizing ? 'animate-spin' : ''}`} />
-          {optimizing ? 'Optimiere...' : 'Jetzt optimieren'}
-        </button>
+      <div className="mb-8">
+        <h1 className="text-5xl font-bold text-white flex items-center gap-3 mb-2">
+          <span>🔑</span>
+          Keywords
+        </h1>
+        <p className="text-gray-400 text-xl">Verwalte und optimiere deine Kampagnen-Keywords</p>
       </div>
 
-      {/* Statistiken */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl p-6 border border-blue-700 shadow-xl">
-          <div className="text-3xl mb-2">🔑</div>
-          <div className="text-3xl font-bold text-white">{keywords.length}</div>
-          <div className="text-sm text-blue-300 mt-1">Gesamt</div>
+      {/* Statistik-Karten */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 p-6 shadow-xl border border-blue-500">
+          <div className="text-blue-200 text-sm font-semibold mb-2">GESAMT</div>
+          <div className="text-4xl font-bold text-white">{stats.total}</div>
+          <div className="text-blue-200 text-sm mt-2">Keywords insgesamt</div>
         </div>
-        <div className="bg-gradient-to-br from-green-900 to-green-800 rounded-xl p-6 border border-green-700 shadow-xl">
-          <div className="text-3xl mb-2">✅</div>
-          <div className="text-3xl font-bold text-white">
-            {keywords.filter(k => k.state === 'ENABLED').length}
-          </div>
-          <div className="text-sm text-green-300 mt-1">Aktiv</div>
+        <div className="rounded-xl bg-gradient-to-br from-green-600 to-green-800 p-6 shadow-xl border border-green-500">
+          <div className="text-green-200 text-sm font-semibold mb-2">AKTIV</div>
+          <div className="text-4xl font-bold text-white">{stats.enabled}</div>
+          <div className="text-green-200 text-sm mt-2">Laufende Keywords</div>
         </div>
-        <div className="bg-gradient-to-br from-purple-900 to-purple-800 rounded-xl p-6 border border-purple-700 shadow-xl">
-          <div className="text-3xl mb-2">🎯</div>
-          <div className="text-3xl font-bold text-white">
-            {keywords.filter(k => k.matchType === 'EXACT').length}
-          </div>
-          <div className="text-sm text-purple-300 mt-1">Exact Match</div>
-        </div>
-        <div className="bg-gradient-to-br from-orange-900 to-orange-800 rounded-xl p-6 border border-orange-700 shadow-xl">
-          <div className="text-3xl mb-2">🔄</div>
-          <div className="text-3xl font-bold text-white">
-            {keywords.filter(k => k.matchType === 'BROAD').length}
-          </div>
-          <div className="text-sm text-orange-300 mt-1">Broad Match</div>
+        <div className="rounded-xl bg-gradient-to-br from-yellow-600 to-yellow-800 p-6 shadow-xl border border-yellow-500">
+          <div className="text-yellow-200 text-sm font-semibold mb-2">PAUSIERT</div>
+          <div className="text-4xl font-bold text-white">{stats.paused}</div>
+          <div className="text-yellow-200 text-sm mt-2">Pausierte Keywords</div>
         </div>
       </div>
 
-      {/* Suchleiste */}
-      <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Keywords durchsuchen..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-12 pr-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition"
-          />
+      {/* Suche & Refresh */}
+      <div className="rounded-xl bg-gray-800 border border-gray-700 p-6 mb-8 shadow-xl">
+        <div className="flex flex-col md:flex-row gap-4">
+          {/* Suchfeld */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Keyword suchen..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Refresh Button */}
+          <button
+            onClick={loadKeywords}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 font-semibold"
+          >
+            <RefreshCw className="h-5 w-5" />
+            Aktualisieren
+          </button>
         </div>
       </div>
 
-      {/* Tabelle */}
-      <div className="rounded-xl bg-gray-800 border border-gray-700 shadow-2xl overflow-hidden">
+      {/* Keywords-Tabelle */}
+      <div className="rounded-xl bg-gray-800 border border-gray-700 overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-700">
-            <thead className="bg-gray-900">
+          <table className="w-full">
+            <thead className="bg-gray-900 border-b border-gray-700">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-400">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">
                   Keyword
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-400">
-                  Match Type
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-400">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-400">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  Match-Typ
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">
                   Gebot
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-400">
-                  ID
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  Kampagne
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-700 bg-gray-800">
+            <tbody className="divide-y divide-gray-700">
               {filteredKeywords.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center">
-                    <div className="text-5xl mb-4">🔍</div>
-                    <p className="text-gray-400 text-lg">
-                      {searchTerm ? 'Keine Keywords gefunden' : 'Keine Keywords vorhanden'}
-                    </p>
+                    <div className="text-gray-400 text-lg">
+                      {searchTerm 
+                        ? 'Keine Keywords gefunden' 
+                        : 'Keine Keywords vorhanden'}
+                    </div>
                   </td>
                 </tr>
               ) : (
                 filteredKeywords.map((keyword, index) => (
-                  <tr 
-                    key={keyword.keywordId} 
-                    className="hover:bg-gray-700 transition group"
+                  <tr
+                    key={keyword.keywordId || index}
+                    className="hover:bg-gray-700/50 transition"
                   >
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-500">#{index + 1}</span>
-                        <div className="font-semibold text-white group-hover:text-blue-400 transition">
-                          {keyword.keywordText}
-                        </div>
+                      <div className="text-white font-semibold">
+                        {keyword.keywordText || 'N/A'}
+                      </div>
+                      <div className="text-gray-400 text-sm">
+                        ID: {keyword.keywordId || 'N/A'}
                       </div>
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold uppercase ${
-                        keyword.matchType === 'EXACT'
-                          ? 'bg-purple-900 text-purple-300 border border-purple-700'
-                          : keyword.matchType === 'PHRASE'
-                          ? 'bg-blue-900 text-blue-300 border border-blue-700'
-                          : 'bg-orange-900 text-orange-300 border border-orange-700'
-                      }`}>
-                        {keyword.matchType}
+                    <td className="px-6 py-4">
+                      <span
+                        className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border ${getStateColor(
+                          keyword.state
+                        )}`}
+                      >
+                        {keyword.state || 'UNKNOWN'}
                       </span>
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold uppercase ${
-                        keyword.state === 'ENABLED' 
-                          ? 'bg-green-900 text-green-300 border border-green-700' 
-                          : 'bg-gray-700 text-gray-400 border border-gray-600'
-                      }`}>
-                        {keyword.state === 'ENABLED' && '✓'}
-                        {keyword.state}
+                    <td className="px-6 py-4">
+                      <span
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getMatchTypeColor(
+                          keyword.matchType
+                        )}`}
+                      >
+                        {keyword.matchType || 'N/A'}
                       </span>
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4">
+                    <td className="px-6 py-4">
                       <div className="text-white font-semibold">
                         €{keyword.bid?.toFixed(2) || '0.00'}
                       </div>
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <code className="text-xs bg-gray-900 px-2 py-1 rounded text-gray-400 font-mono">
-                        {keyword.keywordId}
-                      </code>
+                    <td className="px-6 py-4">
+                      <div className="text-gray-300">
+                        {keyword.campaignId || 'N/A'}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -214,21 +213,27 @@ export default function KeywordsPage() {
         </div>
       </div>
 
-      {/* Info Banner */}
-      {keywords.length > 0 && (
-        <div className="mt-8 bg-green-900/30 rounded-xl p-6 border border-green-700">
-          <div className="flex items-start gap-4">
-            <span className="text-3xl">💡</span>
-            <div>
-              <h3 className="text-lg font-bold text-green-300 mb-2">Keyword-Optimierung</h3>
-              <p className="text-green-200">
-                Das System analysiert kontinuierlich die Performance aller Keywords und passt 
-                Gebote automatisch an, um die besten Ergebnisse zu erzielen.
-              </p>
-            </div>
-          </div>
+      {/* Ergebnisse Anzeige */}
+      {filteredKeywords.length > 0 && (
+        <div className="mt-6 text-center text-gray-400">
+          {filteredKeywords.length} von {keywords.length} Keywords angezeigt
         </div>
       )}
+
+      {/* Info-Box */}
+      <div className="mt-8 rounded-xl bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-700 p-6">
+        <div className="flex items-start gap-4">
+          <AlertCircle className="h-6 w-6 text-blue-400 flex-shrink-0 mt-1" />
+          <div>
+            <h3 className="text-white font-bold text-lg mb-2">💡 Keyword-Optimierung</h3>
+            <p className="text-gray-300 leading-relaxed">
+              Die automatische Keyword-Analyse läuft kontinuierlich im Hintergrund. 
+              Schlecht performende Keywords werden automatisch pausiert und 
+              vielversprechende Keywords erhalten höhere Gebote für bessere Platzierungen.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
