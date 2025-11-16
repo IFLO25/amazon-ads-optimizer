@@ -1,159 +1,199 @@
 'use client';
 
 import { useState } from 'react';
-import { Zap, TrendingUp, DollarSign, Target, CheckCircle, AlertCircle } from 'lucide-react';
-import { optimizationApi } from '@/lib/api';
+import { Sidebar } from '@/components/Sidebar';
+
+interface Recommendation {
+  type: string;
+  campaignId?: string;
+  campaignName?: string;
+  keywordId?: string;
+  keywordText?: string;
+  message: string;
+  suggestion: string;
+  priority: string;
+}
+
+interface OptimizationResult {
+  success: boolean;
+  totalRecommendations: number;
+  recommendations: Recommendation[];
+  analyzedCampaigns: number;
+  analyzedKeywords: number;
+}
 
 export default function OptimizationPage() {
-  const [optimizing, setOptimizing] = useState(false);
-  const [result, setResult] = useState<any>(null);
-  const [error, setError] = useState('');
+  const [result, setResult] = useState<OptimizationResult | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const runOptimization = async () => {
+  const startOptimization = async () => {
     try {
-      setOptimizing(true);
-      setError('');
-      setResult(null);
-      const response = await optimizationApi.optimize();
-      setResult(response.data);
-    } catch (err: any) {
-      console.error('Fehler bei der Optimierung:', err);
-      setError(err.response?.data?.message || 'Fehler bei der Optimierung');
+      setLoading(true);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const res = await fetch(`${apiUrl}/api/optimization/optimize`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      setResult(data);
+    } catch (error) {
+      console.error('Fehler bei der Optimierung:', error);
+      alert('❌ Fehler bei der Optimierung!');
     } finally {
-      setOptimizing(false);
+      setLoading(false);
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority.toLowerCase()) {
+      case 'high':
+        return 'bg-red-900 text-red-300 border-red-700';
+      case 'medium':
+        return 'bg-yellow-900 text-yellow-300 border-yellow-700';
+      case 'low':
+        return 'bg-blue-900 text-blue-300 border-blue-700';
+      default:
+        return 'bg-gray-900 text-gray-300 border-gray-700';
+    }
+  };
+
+  const getPriorityIcon = (priority: string) => {
+    switch (priority.toLowerCase()) {
+      case 'high':
+        return '🔴';
+      case 'medium':
+        return '🟡';
+      case 'low':
+        return '🔵';
+      default:
+        return '⚪';
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-6xl font-bold text-white flex items-center justify-center gap-4 mb-4">
-            <span>⚡</span>
-            Kampagnen-Optimierung
-          </h1>
-          <p className="text-gray-400 text-2xl">
-            Automatische Optimierung Ihrer Amazon Ads Kampagnen
-          </p>
-        </div>
-
-        {error && (
-          <div className="mb-8 bg-red-900/20 border border-red-700 rounded-xl p-6">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="h-6 w-6 text-red-400" />
-              <p className="text-red-400 text-lg">⚠️ {error}</p>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div className="rounded-xl bg-gradient-to-br from-blue-900/50 to-blue-700/50 border border-blue-600 p-8 text-center">
-            <Target className="h-12 w-12 text-blue-400 mx-auto mb-4" />
-            <h3 className="text-blue-300 text-lg font-bold mb-2">Keyword-Optimierung</h3>
-            <p className="text-gray-300">Automatische Anpassung von Geboten basierend auf Performance</p>
-          </div>
-          <div className="rounded-xl bg-gradient-to-br from-green-900/50 to-green-700/50 border border-green-600 p-8 text-center">
-            <DollarSign className="h-12 w-12 text-green-400 mx-auto mb-4" />
-            <h3 className="text-green-300 text-lg font-bold mb-2">Budget-Optimierung</h3>
-            <p className="text-gray-300">Intelligente Budgetverteilung auf Top-Performer</p>
-          </div>
-          <div className="rounded-xl bg-gradient-to-br from-purple-900/50 to-purple-700/50 border border-purple-600 p-8 text-center">
-            <TrendingUp className="h-12 w-12 text-purple-400 mx-auto mb-4" />
-            <h3 className="text-purple-300 text-lg font-bold mb-2">Performance-Boost</h3>
-            <p className="text-gray-300">Pausierung von unterperformenden Keywords</p>
-          </div>
-        </div>
-
-        <div className="rounded-xl bg-gray-800 border border-gray-700 shadow-2xl p-12 text-center">
-          <h2 className="text-3xl font-bold text-white mb-6">Starten Sie die Optimierung</h2>
-          <p className="text-gray-400 text-lg mb-10 max-w-2xl mx-auto">
-            Klicken Sie auf den Button, um eine automatische Analyse und Optimierung aller Ihrer Kampagnen durchzuführen. 
-            Der Prozess analysiert Performance-Daten und passt Gebote und Budgets entsprechend an.
-          </p>
-          <button
-            onClick={runOptimization}
-            disabled={optimizing}
-            className={`px-12 py-6 rounded-2xl text-2xl font-bold transition transform hover:scale-105 flex items-center gap-4 mx-auto ${
-              optimizing
-                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 text-white hover:from-green-700 hover:via-blue-700 hover:to-purple-700 shadow-2xl'
-            }`}
-          >
-            <Zap className={`h-8 w-8 ${optimizing ? 'animate-pulse' : ''}`} />
-            {optimizing ? 'Optimierung läuft...' : 'Jetzt optimieren'}
-          </button>
-        </div>
-
-        {optimizing && (
-          <div className="mt-12 rounded-xl bg-blue-900/20 border border-blue-700 p-8">
-            <div className="flex items-center justify-center gap-4 mb-4">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
-              <p className="text-blue-400 text-xl font-bold">Optimierung wird durchgeführt...</p>
-            </div>
-            <p className="text-center text-gray-400">
-              Bitte warten Sie, während wir Ihre Kampagnen analysieren und optimieren.
+    <div className="flex min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      <Sidebar />
+      
+      <main className="flex-1 p-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-white mb-2">
+              🚀 Kampagnen-Optimierung
+            </h1>
+            <p className="text-gray-400">
+              Automatische Analyse und Empfehlungen für Ihre Kampagnen
             </p>
           </div>
-        )}
 
-        {result && !optimizing && (
-          <div className="mt-12 rounded-xl bg-green-900/20 border border-green-700 p-8">
-            <div className="flex items-center gap-4 mb-6">
-              <CheckCircle className="h-10 w-10 text-green-400" />
-              <h3 className="text-3xl font-bold text-green-400">Optimierung erfolgreich!</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div className="bg-gray-800/50 rounded-lg p-6">
-                <p className="text-gray-400 text-sm mb-2">Analysierte Kampagnen</p>
-                <p className="text-4xl font-bold text-white">{result.campaignsAnalyzed || 0}</p>
+          {/* Start Optimization */}
+          <div className="bg-gray-800 rounded-xl p-8 mb-8 border border-gray-700">
+            <h2 className="text-2xl font-bold text-white mb-4">⚡ Optimierung starten</h2>
+            <p className="text-gray-400 mb-6">
+              Analysieren Sie Ihre Kampagnen und Keywords, um Verbesserungspotenziale zu identifizieren.
+            </p>
+            <button
+              onClick={startOptimization}
+              disabled={loading}
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-600 text-white font-bold py-4 px-8 rounded-lg transition-all transform hover:scale-105"
+            >
+              {loading ? '⏳ Analysiere...' : '🚀 Jetzt optimieren'}
+            </button>
+          </div>
+
+          {/* Results */}
+          {result && (
+            <>
+              {/* Summary */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                  <div className="text-gray-400 text-sm mb-2">Empfehlungen</div>
+                  <div className="text-3xl font-bold text-white">{result.totalRecommendations}</div>
+                </div>
+                <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                  <div className="text-gray-400 text-sm mb-2">Analysierte Kampagnen</div>
+                  <div className="text-3xl font-bold text-blue-400">{result.analyzedCampaigns}</div>
+                </div>
+                <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                  <div className="text-gray-400 text-sm mb-2">Analysierte Keywords</div>
+                  <div className="text-3xl font-bold text-purple-400">{result.analyzedKeywords}</div>
+                </div>
               </div>
-              <div className="bg-gray-800/50 rounded-lg p-6">
-                <p className="text-gray-400 text-sm mb-2">Durchgeführte Änderungen</p>
-                <p className="text-4xl font-bold text-white">{result.changesApplied || 0}</p>
-              </div>
-            </div>
-            {result.message && (
-              <div className="bg-gray-800/50 rounded-lg p-6">
-                <p className="text-gray-300 text-lg">{result.message}</p>
-              </div>
-            )}
-            {result.details && result.details.length > 0 && (
-              <div className="mt-6">
-                <h4 className="text-xl font-bold text-white mb-4">Details:</h4>
-                <ul className="space-y-2">
-                  {result.details.map((detail: string, index: number) => (
-                    <li key={index} className="flex items-start gap-3">
-                      <span className="text-green-400 mt-1">✓</span>
-                      <span className="text-gray-300">{detail}</span>
-                    </li>
+
+              {/* Recommendations */}
+              {result.recommendations.length === 0 ? (
+                <div className="bg-gray-800 rounded-xl p-12 text-center border border-gray-700">
+                  <div className="text-6xl mb-4">✅</div>
+                  <h3 className="text-2xl font-bold text-white mb-2">Alles optimal!</h3>
+                  <p className="text-gray-400">Keine Optimierungsmöglichkeiten gefunden.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <h2 className="text-2xl font-bold text-white mb-4">💡 Empfehlungen</h2>
+                  {result.recommendations.map((rec, index) => (
+                    <div
+                      key={index}
+                      className={`rounded-xl p-6 border-2 ${getPriorityColor(rec.priority)}`}
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{getPriorityIcon(rec.priority)}</span>
+                          <div>
+                            <span className="text-xs font-semibold uppercase tracking-wider opacity-75">
+                              {rec.type}
+                            </span>
+                            {rec.campaignName && (
+                              <h3 className="text-xl font-bold mt-1">{rec.campaignName}</h3>
+                            )}
+                            {rec.keywordText && (
+                              <h3 className="text-xl font-bold mt-1">{rec.keywordText}</h3>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-xs font-semibold uppercase px-3 py-1 rounded-full bg-black bg-opacity-30">
+                          {rec.priority} Priority
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-lg font-medium">
+                          ⚠️ {rec.message}
+                        </p>
+                        <p className="text-sm opacity-90">
+                          💡 {rec.suggestion}
+                        </p>
+                      </div>
+                    </div>
                   ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
+                </div>
+              )}
+            </>
+          )}
 
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="rounded-xl bg-gray-800 border border-gray-700 p-6">
-            <h3 className="text-xl font-bold text-white mb-4">📊 Optimierungs-Metriken</h3>
-            <ul className="space-y-3 text-gray-300">
-              <li>• Automatische Gebotsanpassung basierend auf ACOS</li>
-              <li>• Pausierung von Keywords mit hohen Kosten</li>
-              <li>• Budget-Reallokation zu Top-Performern</li>
-              <li>• Performance-Trend-Analyse</li>
-            </ul>
-          </div>
-          <div className="rounded-xl bg-gray-800 border border-gray-700 p-6">
-            <h3 className="text-xl font-bold text-white mb-4">⚙️ Optimierungs-Regeln</h3>
-            <ul className="space-y-3 text-gray-300">
-              <li>• ACOS {'>'} 50%: Gebot um 20% senken</li>
-              <li>• ACOS {'<'} 20%: Gebot um 15% erhöhen</li>
-              <li>• Keine Conversions: Keyword pausieren</li>
-              <li>• Budget-Auslastung {'>'} 90%: Budget erhöhen</li>
-            </ul>
-          </div>
+          {/* Info Box */}
+          {!result && !loading && (
+            <div className="bg-gray-800 rounded-xl p-8 border border-gray-700">
+              <h3 className="text-xl font-bold text-white mb-4">ℹ️ Was wird optimiert?</h3>
+              <ul className="space-y-3 text-gray-300">
+                <li className="flex items-start gap-3">
+                  <span className="text-green-400">✓</span>
+                  <span><strong>Budget-Auslastung:</strong> Kampagnen mit hoher Budget-Ausschöpfung</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-green-400">✓</span>
+                  <span><strong>CTR-Analyse:</strong> Kampagnen und Keywords mit niedriger Click-Through-Rate</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-green-400">✓</span>
+                  <span><strong>Gebot-Optimierung:</strong> Keywords mit zu hohen Geboten</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-green-400">✓</span>
+                  <span><strong>Performance:</strong> Identifikation von unterperformenden Elementen</span>
+                </li>
+              </ul>
+            </div>
+          )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }
