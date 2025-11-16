@@ -36,6 +36,7 @@ export const keywordsApi = {
 
 // Optimization APIs
 export const optimizationApi = {
+  optimize: () => api.post('/api/optimization/run-all'),
   runAll: () => api.post('/api/optimization/run-all'),
   getHistory: () => api.get('/api/optimization/history'),
 };
