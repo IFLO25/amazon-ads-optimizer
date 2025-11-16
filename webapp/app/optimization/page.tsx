@@ -3,195 +3,152 @@
 import { useState } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 
-interface Recommendation {
-  type: string;
-  campaignId?: string;
-  campaignName?: string;
-  keywordId?: string;
-  keywordText?: string;
-  message: string;
-  suggestion: string;
-  priority: string;
-}
-
-interface OptimizationResult {
-  success: boolean;
-  totalRecommendations: number;
-  recommendations: Recommendation[];
-  analyzedCampaigns: number;
-  analyzedKeywords: number;
-}
-
 export default function OptimizationPage() {
-  const [result, setResult] = useState<OptimizationResult | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [optimizing, setOptimizing] = useState(false);
+  const [result, setResult] = useState<any>(null);
 
-  const startOptimization = async () => {
+  const handleOptimize = async () => {
     try {
-      setLoading(true);
+      setOptimizing(true);
+      setResult(null);
+    
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-      const res = await fetch(`${apiUrl}/api/optimization/optimize`, {
+      const response = await fetch(`${apiUrl}/api/optimization/run`, {
         method: 'POST',
       });
-      const data = await res.json();
+    
+      const data = await response.json();
       setResult(data);
     } catch (error) {
-      console.error('Fehler bei der Optimierung:', error);
-      alert('❌ Fehler bei der Optimierung!');
+      console.error('Optimization failed:', error);
+      setResult({ error: 'Optimization failed. Please try again.' });
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority.toLowerCase()) {
-      case 'high':
-        return 'bg-red-900 text-red-300 border-red-700';
-      case 'medium':
-        return 'bg-yellow-900 text-yellow-300 border-yellow-700';
-      case 'low':
-        return 'bg-blue-900 text-blue-300 border-blue-700';
-      default:
-        return 'bg-gray-900 text-gray-300 border-gray-700';
-    }
-  };
-
-  const getPriorityIcon = (priority: string) => {
-    switch (priority.toLowerCase()) {
-      case 'high':
-        return '🔴';
-      case 'medium':
-        return '🟡';
-      case 'low':
-        return '🔵';
-      default:
-        return '⚪';
+      setOptimizing(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <div className="flex min-h-screen bg-gray-950">
       <Sidebar />
-      
+    
       <main className="flex-1 p-8">
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">
-              🚀 Kampagnen-Optimierung
-            </h1>
-            <p className="text-gray-400">
-              Automatische Analyse und Empfehlungen für Ihre Kampagnen
-            </p>
+            <h1 className="text-3xl font-bold text-white mb-2">Campaign Optimization</h1>
+            <p className="text-gray-400">Optimize your campaigns with one click</p>
           </div>
 
-          {/* Start Optimization */}
-          <div className="bg-gray-800 rounded-xl p-8 mb-8 border border-gray-700">
-            <h2 className="text-2xl font-bold text-white mb-4">⚡ Optimierung starten</h2>
-            <p className="text-gray-400 mb-6">
-              Analysieren Sie Ihre Kampagnen und Keywords, um Verbesserungspotenziale zu identifizieren.
-            </p>
-            <button
-              onClick={startOptimization}
-              disabled={loading}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-600 text-white font-bold py-4 px-8 rounded-lg transition-all transform hover:scale-105"
-            >
-              {loading ? '⏳ Analysiere...' : '🚀 Jetzt optimieren'}
-            </button>
-          </div>
-
-          {/* Results */}
-          {result && (
-            <>
-              {/* Summary */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-                  <div className="text-gray-400 text-sm mb-2">Empfehlungen</div>
-                  <div className="text-3xl font-bold text-white">{result.totalRecommendations}</div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-gray-900 rounded-lg p-8">
+              <h2 className="text-2xl font-semibold text-white mb-4">⚡ Quick Optimization</h2>
+              <p className="text-gray-400 mb-6">
+                Run AI-powered optimization to improve your campaign performance automatically.
+              </p>
+            
+              <div className="space-y-4 mb-6">
+                <div className="flex items-start space-x-3">
+                  <span className="text-2xl">✅</span>
+                  <div>
+                    <h3 className="text-white font-medium">Bid Optimization</h3>
+                    <p className="text-gray-400 text-sm">Adjust keyword bids based on performance</p>
+                  </div>
                 </div>
-                <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-                  <div className="text-gray-400 text-sm mb-2">Analysierte Kampagnen</div>
-                  <div className="text-3xl font-bold text-blue-400">{result.analyzedCampaigns}</div>
+              
+                <div className="flex items-start space-x-3">
+                  <span className="text-2xl">✅</span>
+                  <div>
+                    <h3 className="text-white font-medium">Budget Allocation</h3>
+                    <p className="text-gray-400 text-sm">Optimize budget distribution across campaigns</p>
+                  </div>
                 </div>
-                <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-                  <div className="text-gray-400 text-sm mb-2">Analysierte Keywords</div>
-                  <div className="text-3xl font-bold text-purple-400">{result.analyzedKeywords}</div>
+              
+                <div className="flex items-start space-x-3">
+                  <span className="text-2xl">✅</span>
+                  <div>
+                    <h3 className="text-white font-medium">Keyword Analysis</h3>
+                    <p className="text-gray-400 text-sm">Identify underperforming keywords</p>
+                  </div>
                 </div>
               </div>
 
-              {/* Recommendations */}
-              {result.recommendations.length === 0 ? (
-                <div className="bg-gray-800 rounded-xl p-12 text-center border border-gray-700">
-                  <div className="text-6xl mb-4">✅</div>
-                  <h3 className="text-2xl font-bold text-white mb-2">Alles optimal!</h3>
-                  <p className="text-gray-400">Keine Optimierungsmöglichkeiten gefunden.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <h2 className="text-2xl font-bold text-white mb-4">💡 Empfehlungen</h2>
-                  {result.recommendations.map((rec, index) => (
-                    <div
-                      key={index}
-                      className={`rounded-xl p-6 border-2 ${getPriorityColor(rec.priority)}`}
-                    >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">{getPriorityIcon(rec.priority)}</span>
-                          <div>
-                            <span className="text-xs font-semibold uppercase tracking-wider opacity-75">
-                              {rec.type}
-                            </span>
-                            {rec.campaignName && (
-                              <h3 className="text-xl font-bold mt-1">{rec.campaignName}</h3>
-                            )}
-                            {rec.keywordText && (
-                              <h3 className="text-xl font-bold mt-1">{rec.keywordText}</h3>
-                            )}
-                          </div>
-                        </div>
-                        <span className="text-xs font-semibold uppercase px-3 py-1 rounded-full bg-black bg-opacity-30">
-                          {rec.priority} Priority
-                        </span>
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-lg font-medium">
-                          ⚠️ {rec.message}
-                        </p>
-                        <p className="text-sm opacity-90">
-                          💡 {rec.suggestion}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+              <button
+                onClick={handleOptimize}
+                disabled={optimizing}
+                className="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-4 rounded-lg transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {optimizing ? '⚡ Optimizing...' : '⚡ Start Optimization'}
+              </button>
+            </div>
+
+            <div className="bg-gray-900 rounded-lg p-8">
+              <h2 className="text-2xl font-semibold text-white mb-4">📊 Results</h2>
+            
+              {!result && !optimizing && (
+                <div className="text-center py-12 text-gray-400">
+                  <span className="text-6xl mb-4 block">📊</span>
+                  <p>Click "Start Optimization" to begin</p>
                 </div>
               )}
-            </>
-          )}
 
-          {/* Info Box */}
-          {!result && !loading && (
-            <div className="bg-gray-800 rounded-xl p-8 border border-gray-700">
-              <h3 className="text-xl font-bold text-white mb-4">ℹ️ Was wird optimiert?</h3>
-              <ul className="space-y-3 text-gray-300">
-                <li className="flex items-start gap-3">
-                  <span className="text-green-400">✓</span>
-                  <span><strong>Budget-Auslastung:</strong> Kampagnen mit hoher Budget-Ausschöpfung</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-green-400">✓</span>
-                  <span><strong>CTR-Analyse:</strong> Kampagnen und Keywords mit niedriger Click-Through-Rate</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-green-400">✓</span>
-                  <span><strong>Gebot-Optimierung:</strong> Keywords mit zu hohen Geboten</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-green-400">✓</span>
-                  <span><strong>Performance:</strong> Identifikation von unterperformenden Elementen</span>
-                </li>
-              </ul>
+              {optimizing && (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4 animate-pulse">⚡</div>
+                  <p className="text-white text-lg">Analyzing campaigns...</p>
+                  <p className="text-gray-400 text-sm mt-2">This may take a few moments</p>
+                </div>
+              )}
+
+              {result && !result.error && (
+                <div className="space-y-4">
+                  <div className="bg-gray-800 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-gray-400">Campaigns Analyzed</span>
+                      <span className="text-white font-bold">{result.campaignsAnalyzed || 0}</span>
+                    </div>
+                  </div>
+                
+                  <div className="bg-gray-800 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-gray-400">Keywords Optimized</span>
+                      <span className="text-white font-bold">{result.keywordsOptimized || 0}</span>
+                    </div>
+                  </div>
+                
+                  <div className="bg-gray-800 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-gray-400">Changes Applied</span>
+                      <span className="text-white font-bold">{result.changesApplied || 0}</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-green-500/20 border border-green-500 rounded-lg p-4 mt-6">
+                    <p className="text-green-500 font-semibold">✅ Optimization Complete!</p>
+                    <p className="text-gray-300 text-sm mt-1">{result.message || 'Your campaigns have been optimized successfully.'}</p>
+                  </div>
+                </div>
+              )}
+
+              {result && result.error && (
+                <div className="bg-red-500/20 border border-red-500 rounded-lg p-4">
+                  <p className="text-red-500 font-semibold">❌ Optimization Failed</p>
+                  <p className="text-gray-300 text-sm mt-1">{result.error}</p>
+                </div>
+              )}
             </div>
-          )}
+          </div>
+
+          <div className="mt-8 bg-blue-500/20 border border-blue-500 rounded-lg p-6">
+            <div className="flex items-start space-x-4">
+              <span className="text-4xl">ℹ️</span>
+              <div>
+                <h3 className="text-white font-semibold mb-2">System Running 24/7</h3>
+                <p className="text-gray-300">
+                  Your Amazon Ads Optimizer is running continuously on Railway. The system monitors 
+                  your campaigns around the clock and applies optimizations automatically.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
     </div>
